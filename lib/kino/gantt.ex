@@ -10,7 +10,7 @@ defmodule Kino.Gantt do
 
   @spec new() :: t()
   def new() do
-    Kino.JS.Live.new(__MODULE__, %{})
+    Kino.JS.Live.new(__MODULE__, DhtmlxGantt.new())
   end
 
   @doc """

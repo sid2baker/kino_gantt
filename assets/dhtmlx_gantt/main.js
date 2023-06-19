@@ -4,35 +4,65 @@ import { gantt } from "dhtmlx-gantt";
 export function init(ctx, data) {
   ctx.importCSS("main.css");
 
+  ctx.root.innerHTML = `
+    <div id="gantt" style="height: 400px;"></div>
+  `
+
   const { config, gantt_data } = data;
 
-  gantt.config.columns = [
-    { name: "text", label: "Task name", tree: true, width: '*' },
-    { name: "start_date", label: "Start time", align: "center" },
-    { name: "duration", label: "Duration", align: "center" },
-    { name: "add", label: "" }
-  ];
-
-  gantt.config.scales = [
-    {
-      unit: "week", step: 1, format: function(date) {
-        return "Week #" + gantt.date.getWeek(date);
+  let zoomConfig = {
+    levels: [
+      {
+        name: "week",
+        scale_height: 30,
+        min_column_width: 30,
+        scales: [
+          { unit: "week", step: 1, format: "%W" }
+        ]
+      },
+      {
+        name: "month",
+        scale_height: 50,
+        min_column_width: 50,
+        scales: [
+          { unit: "month", step: 1, format: "%M.%y" }
+        ]
       }
-    }
-  ];
+    ]
+  }
+
+  gantt.ext.zoom.init(zoomConfig);
 
   gantt.config.lightbox.sections = [
-    { name: "Title", height: 40, map_to: "text", type: "textarea", focus: true },
-    { name: "time", height: 72, map_to: "auto", type: "duration" }
+    { name: "description", height: 70, map_to: "text", type: "textarea", focus: true },
+    { name: "time", type: "duration", map_to: "auto" },
+    { name: "end_date", map_to: "end_date", type: "date", time_format: ["%d", "%m", "%Y"] }
   ];
 
-  gantt.config.start_date = new Date("2023-01-01");
-  gantt.config.end_date = new Date("2024-01-01");
+  let today = new Date();
+  gantt.config.start_date = gantt.date.add(today, -8, "week");
+  gantt.config.end_date = gantt.date.add(today, 1, "year");
+
+  gantt.config.work_time = true;
 
   gantt.config.order_branch = true;
   gantt.config.order_branch_free = true;
 
-  gantt.config.autosize = true;
+  const textEditor = { type: "text", map_to: "text" };
+  const dateEditor = {
+    type: "date", map_to: "start_date",
+    min: today
+  };
+  const durationEditor = { type: "number", map_to: "duration", min: 0, max: 100 }
+
+  gantt.config.columns = [
+    { name: "text", label: "Task name", tree: true, width: '*', editor: textEditor },
+    { name: "start_date", label: "Start time", align: "center", editor: dateEditor },
+    { name: "duration", label: "Duration", align: "center", editor: durationEditor },
+    { name: "add", label: "" }
+  ];
+
+  gantt.config.duration_unit = "day";
 
   gantt.plugins({
     fullscreen: true,
@@ -40,7 +70,7 @@ export function init(ctx, data) {
   });
 
   gantt.addMarker({
-    start_date: new Date(),
+    start_date: today,
     css: "today",
     text: "Now",
     title: "TEST"
@@ -49,7 +79,7 @@ export function init(ctx, data) {
   //gantt.config = config;
   console.log(gantt.config);
 
-  gantt.init(ctx.root);
+  gantt.init("gantt");
 
   console.log(gantt_data);
   if (Object.keys(gantt_data).length !== 0) {
@@ -98,9 +128,13 @@ export function init(ctx, data) {
 
   let button = document.createElement("button");
   let data_button = document.createElement("button");
+  let weekly_view = document.createElement("button");
+  let monthly_view = document.createElement("button");
 
   button.innerHTML = "Fullscreen";
   data_button.innerHTML = "DATA"
+  weekly_view.innerHTML = "WEEK"
+  monthly_view.innerHTML = "MONTH"
 
   button.onclick = function() {
     gantt.ext.fullscreen.toggle();
@@ -110,8 +144,18 @@ export function init(ctx, data) {
     console.log(gantt.serialize());
   }
 
+  weekly_view.onclick = function() {
+    gantt.ext.zoom.setLevel("week");
+  }
+
+  monthly_view.onclick = function() {
+    gantt.ext.zoom.setLevel("month");
+  }
+
   ctx.root.prepend(data_button);
   ctx.root.prepend(button);
+  ctx.root.prepend(weekly_view);
+  ctx.root.prepend(monthly_view);
 }
 
 function pushUpdatedGantt(ctx, gantt) {
