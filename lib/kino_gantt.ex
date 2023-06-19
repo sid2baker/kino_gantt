@@ -1,18 +1,5 @@
-defmodule KinoGantt do
-  @moduledoc """
-  Documentation for `KinoGantt`.
-  """
-
-  @doc """
-  Hello world.
-
-  ## Examples
-
-      iex> KinoGantt.hello()
-      :world
-
-  """
-  def hello do
-    :world
+defimpl Kino.Render, for: DhtmlxGantt do
+  def to_livebook(gantt) do
+    gantt |> Kino.Gantt.static() |> Kino.Render.to_livebook()
   end
 end
