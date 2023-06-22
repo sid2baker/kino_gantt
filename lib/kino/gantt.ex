@@ -32,6 +32,20 @@ defmodule Kino.Gantt do
     Kino.JS.new(__MODULE__, data, export_info_string: "gantt", export_key: :spec)
   end
 
+  @doc """
+
+  """
+  @spec add_task(pid(), String.t(), Date.t()) :: {:ok, integer()} | :error
+  def add_task(gantt, text, start) do
+    Kino.JS.Live.call(gantt, {:add_task, text, start})
+  end
+
+  def trigger_func(gantt, func, args) do
+    Kino.JS.Live.cast(gantt, {:trigger, func, args})
+  end
+
+  # CALLBACKS
+
   @impl true
   def init(gantt, ctx) do
     {:ok, assign(ctx, config: gantt.config, gantt_data: gantt.gantt_data)}
@@ -46,5 +60,23 @@ defmodule Kino.Gantt do
   def handle_event("gantt_changed", data, ctx) do
     broadcast_event(ctx, "gantt_changed", data)
     {:noreply, assign(ctx, gantt_data: data)}
+  end
+
+  @impl true
+  def handle_call({:add_task, text, start}, data, ctx) do
+    task = %{
+      id: 55,
+      text: text,
+      start: start,
+      duration: 4
+    }
+    broadcast_event(ctx, "add_task", task)
+    {:reply, {:ok, 55}, ctx}
+  end
+
+  @impl true
+  def handle_cast({:trigger, func, args}, ctx) do
+    broadcast_event(ctx, "trigger", %{func: func, args: args})
+    {:noreply, ctx}
   end
 end

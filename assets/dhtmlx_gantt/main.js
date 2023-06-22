@@ -1,13 +1,13 @@
 import "dhtmlx-gantt/codebase/dhtmlxgantt.css";
+import "./main.css";
 import { gantt } from "dhtmlx-gantt";
 
 export function init(ctx, data) {
   ctx.importCSS("main.css");
-
   ctx.root.innerHTML = `
-    <div id="gantt" style="height: 400px;"></div>
+    <button id="fullscreenButton">Fullscreen</button>
+    <div id="gantt" />
   `
-
   const { config, gantt_data } = data;
 
   let zoomConfig = {
@@ -81,6 +81,14 @@ export function init(ctx, data) {
 
   gantt.init("gantt");
 
+  gantt.addCalendar({
+    id: "default",
+    worktime: {
+      hours: ["8:00-17:00"],
+      days: [1, 1, 1, 1, 1, 1, 1]
+    }
+  });
+
   console.log(gantt_data);
   if (Object.keys(gantt_data).length !== 0) {
     gantt.parse(gantt_data);
@@ -116,46 +124,34 @@ export function init(ctx, data) {
     pushUpdatedGantt(ctx, gantt);
   });
 
+  ctx.handleEvent("trigger", ({ func, args }) => {
+    switch (func) {
+      case "fullscreen":
+        gantt.ext.fullscreen.toggle();
+        break;
+      case "zoom":
+        gantt.ext.zoom.setLevel(args);
+        break;
+      default:
+        console.log(`Unkown function ${func}.`);
+    }
+  });
+
   ctx.handleEvent("gantt_changed", (data) => {
     gantt.parse(data);
   });
 
   ctx.handleEvent("add_task", ({ id, text, start_date, duration }) => {
     gantt.addTask({
-
+      text: text,
+      start_date: today,
+      duration: duration
     })
   });
 
-  let button = document.createElement("button");
-  let data_button = document.createElement("button");
-  let weekly_view = document.createElement("button");
-  let monthly_view = document.createElement("button");
-
-  button.innerHTML = "Fullscreen";
-  data_button.innerHTML = "DATA"
-  weekly_view.innerHTML = "WEEK"
-  monthly_view.innerHTML = "MONTH"
-
-  button.onclick = function() {
+  document.getElementById("fullscreenButton").addEventListener("click", function() {
     gantt.ext.fullscreen.toggle();
-  }
-
-  data_button.onclick = function() {
-    console.log(gantt.serialize());
-  }
-
-  weekly_view.onclick = function() {
-    gantt.ext.zoom.setLevel("week");
-  }
-
-  monthly_view.onclick = function() {
-    gantt.ext.zoom.setLevel("month");
-  }
-
-  ctx.root.prepend(data_button);
-  ctx.root.prepend(button);
-  ctx.root.prepend(weekly_view);
-  ctx.root.prepend(monthly_view);
+  });
 }
 
 function pushUpdatedGantt(ctx, gantt) {

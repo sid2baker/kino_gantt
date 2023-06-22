@@ -1,0 +1,18 @@
+#root {
+  height: 400px;
+}
+
+#gantt {
+  position: absolute !important;
+}
+
+#fullscreenButton {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
