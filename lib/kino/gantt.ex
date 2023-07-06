@@ -35,9 +35,13 @@ defmodule Kino.Gantt do
   @doc """
 
   """
-  @spec add_task(pid(), String.t(), Date.t()) :: {:ok, integer()} | :error
-  def add_task(gantt, text, start) do
-    Kino.JS.Live.call(gantt, {:add_task, text, start})
+  @spec add_task(pid(), String.t(), integer()) :: {:ok, integer()} | :error
+  def add_task(gantt, name, duration) do
+    Kino.JS.Live.call(gantt, {:add_task, name, duration})
+  end
+
+  def add_task_form(gantt) do
+    Kino.JS.Live.call(gantt, :add_task_form)
   end
 
   def trigger_func(gantt, func, args) do
@@ -48,7 +52,20 @@ defmodule Kino.Gantt do
 
   @impl true
   def init(gantt, ctx) do
-    {:ok, assign(ctx, config: gantt.config, gantt_data: gantt.gantt_data)}
+    add_task_form = create_add_task_form()
+    :ok = Kino.Control.subscribe(add_task_form, "add_task")
+    {:ok, assign(ctx, add_task_form: add_task_form, config: gantt.config, gantt_data: gantt.gantt_data)}
+  end
+
+  defp create_add_task_form() do
+    Kino.Control.form(
+      [
+        name: Kino.Input.text("Name"),
+        duration: Kino.Input.number("Duration (in weeks)", default: 8)
+      ],
+      submit: "Add Project",
+      reset_on_submit: true
+    )
   end
 
   @impl true
@@ -57,26 +74,33 @@ defmodule Kino.Gantt do
   end
 
   @impl true
-  def handle_event("gantt_changed", data, ctx) do
+  def handle_event("gantt_changed", %{"action" => action, "id" => id, "data" => data} = test, ctx) do
+    case action do
+      #"task_added" -> Kino.JS.Live.reply(ctx.assigns.current_action_pid, {:ok, id})
+      _ -> nil
+    end
     broadcast_event(ctx, "gantt_changed", data)
     {:noreply, assign(ctx, gantt_data: data)}
   end
 
   @impl true
-  def handle_call({:add_task, text, start}, data, ctx) do
-    task = %{
-      id: 55,
-      text: text,
-      start: start,
-      duration: 4
-    }
-    broadcast_event(ctx, "add_task", task)
-    {:reply, {:ok, 55}, ctx}
+  def handle_call(:add_task_form, _from, ctx) do
+    {:reply, ctx.assigns.add_task_form, ctx}
   end
 
   @impl true
   def handle_cast({:trigger, func, args}, ctx) do
     broadcast_event(ctx, "trigger", %{func: func, args: args})
+    {:noreply, ctx}
+  end
+
+  @impl true
+  def handle_info({"add_task", %{origin: origin, data: data}}, ctx) do 
+    task = %{
+      name: data.name,
+      duration: data.duration
+    }
+    send_event(ctx, origin, "add_task", task)
     {:noreply, ctx}
   end
 end
